@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateTask } from "@/lib/actions/tasks";
 import { addComment } from "@/lib/actions/comments";
@@ -24,6 +24,19 @@ type TaskData = {
     full_name: string | null;
     avatar_url: string | null;
   } | null;
+  task_tags?: { tag_id: string }[];
+  task_metadata_values?: { field_id: string; value: string }[];
+};
+
+type ProjectTag = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+type MetadataField = {
+  id: string;
+  field_name: string;
 };
 
 export function KanbanBoard({
@@ -31,14 +44,22 @@ export function KanbanBoard({
   initialTasks,
   canEditState,
   isOwner,
+  projectTags = [],
+  metadataFields = [],
 }: {
   projectId: string;
   initialTasks: TaskData[];
   canEditState: boolean;
   isOwner: boolean;
+  projectTags?: ProjectTag[];
+  metadataFields?: MetadataField[];
 }) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
   
   // Dialog state for Done status
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -257,10 +278,45 @@ export function KanbanBoard({
                           </CardHeader>
                           <CardContent className="p-4 pt-2">
                             {task.description && (
-                              <p className="text-xs text-slate-500 line-clamp-2 mb-3">
-                                {task.description}
+                              <p className="text-xs text-slate-500 line-clamp-2 mb-2">
+                                {task.description.replace(/<[^>]*>/g, '')}
                               </p>
                             )}
+                            {/* Tags */}
+                            {task.task_tags && task.task_tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {task.task_tags.map((tt) => {
+                                  const tag = projectTags.find((t) => t.id === tt.tag_id);
+                                  if (!tag) return null;
+                                  return (
+                                    <span
+                                      key={tag.id}
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium text-white"
+                                      style={{ backgroundColor: tag.color }}
+                                    >
+                                      {tag.name}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            
+                            {/* Metadata Fields */}
+                            {task.task_metadata_values && task.task_metadata_values.length > 0 && metadataFields.length > 0 && (
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 mb-2">
+                                {task.task_metadata_values.filter(v => v.value !== "Not Applicable").map((mv) => {
+                                  const field = metadataFields.find((f) => f.id === mv.field_id);
+                                  if (!field) return null;
+                                  return (
+                                    <div key={field.id} className="flex items-center gap-1 text-[10px] text-slate-500">
+                                      <span className="font-semibold text-slate-700">{field.field_name}:</span>
+                                      <span>{mv.value}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
                               <div className={`flex items-center gap-1.5 text-xs font-medium ${task.due_date && new Date(task.due_date) < new Date()
                                 ? "text-rose-600" : "text-slate-500"}`}>

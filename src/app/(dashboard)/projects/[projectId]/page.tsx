@@ -5,6 +5,8 @@ import { CreateTaskDialog } from "./components/create-task-dialog";
 import { ManageMembersDialog } from "./components/manage-members-dialog";
 import { DeleteProjectButton } from "./components/delete-project-button";
 import { KanbanBoard } from "./components/kanban-board";
+import { ProjectSettingsDialog } from "./components/project-settings-dialog";
+import { ProjectActivitySheet } from "./components/project-activity-sheet";
 
 export default async function ProjectPage({
   params,
@@ -24,27 +26,43 @@ export default async function ProjectPage({
     notFound();
   }
 
-  // Fetch tasks for this project
-  const { data: tasks, error: tasksError } = await supabase
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    notFound();
+  }
+
+  const isOwner = user.id === project.owner_id;
+
+  // Fetch tasks for this project (with assignee + tags + metadata)
+  let tasksQuery = supabase
     .from("tasks")
     .select(`
       *,
-      assignee:profiles(full_name, avatar_url)
+      assignee:profiles(full_name, avatar_url),
+      task_tags(tag_id),
+      task_metadata_values(field_id, value)
     `)
     .eq("project_id", params.projectId)
     .order("created_at", { ascending: false });
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  // ONLY the owner sees all tasks. Assignees see only their assigned tasks.
+  if (!isOwner) {
+    tasksQuery = tasksQuery.eq("assignee_id", user.id);
+  }
+
+  const { data: tasks, error: tasksError } = await tasksQuery;
 
   // Fetch current project members (for the dialog list)
   const { data: membersData } = await supabase
     .from("project_members")
-    .select("user_id, profiles(full_name)")
+    .select("user_id, role, profiles(full_name)")
     .eq("project_id", params.projectId);
 
   const currentMembers = (membersData || []) as unknown as {
     user_id: string;
+    role: string;
     profiles: { full_name: string | null } | null;
   }[];
 
@@ -63,8 +81,24 @@ export default async function ProjectPage({
     profiles: { full_name: p.full_name },
   }));
 
-  const isOwner = user?.id === project.owner_id;
-  const canEdit = isOwner || currentMembers.some((m) => m.user_id === user?.id);
+  // Fetch metadata fields for this project
+  const { data: metadataFields } = await supabase
+    .from("project_metadata_fields")
+    .select("*")
+    .eq("project_id", params.projectId)
+    .order("created_at", { ascending: true });
+
+  // Fetch tags for this project
+  const { data: projectTags } = await supabase
+    .from("project_tags")
+    .select("*")
+    .eq("project_id", params.projectId)
+    .order("created_at", { ascending: true });
+
+  const userMember = currentMembers.find((m) => m.user_id === user?.id);
+  const isManager = userMember?.role === "manager";
+  const canEdit = isOwner || !!userMember;
+  const canManageSettings = isOwner || isManager;
 
   return (
     <div className="flex flex-col h-full gap-6">
@@ -76,15 +110,28 @@ export default async function ProjectPage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {user?.id === project.owner_id && (
+          {canManageSettings && (
+            <ProjectSettingsDialog
+              projectId={project.id}
+              metadataFields={metadataFields || []}
+              tags={projectTags || []}
+            />
+          )}
+          {isOwner && (
             <>
+              <ProjectActivitySheet projectId={project.id} />
               <ManageMembersDialog
                 projectId={project.id}
                 ownerId={project.owner_id}
                 currentMembers={currentMembers}
                 allProfiles={allProfiles}
               />
-              <CreateTaskDialog projectId={project.id} members={members} />
+              <CreateTaskDialog
+                projectId={project.id}
+                members={members}
+                metadataFields={metadataFields || []}
+                projectTags={projectTags || []}
+              />
               <DeleteProjectButton projectId={project.id} />
             </>
           )}
@@ -99,11 +146,13 @@ export default async function ProjectPage({
       )}
 
       {/* Kanban Board */}
-      <KanbanBoard 
-        projectId={project.id} 
-        initialTasks={tasks || []} 
+      <KanbanBoard
+        projectId={project.id}
+        initialTasks={tasks || []}
         canEditState={canEdit}
         isOwner={isOwner}
+        projectTags={projectTags || []}
+        metadataFields={metadataFields || []}
       />
     </div>
   );

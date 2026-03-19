@@ -5,13 +5,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateTask, deleteTask } from "@/lib/actions/tasks";
 import { addComment } from "@/lib/actions/comments";
+import { setTaskMetadata } from "@/lib/actions/metadata";
+import { setTaskTags } from "@/lib/actions/tags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, ChevronLeft } from "lucide-react";
+import { Trash2, ChevronLeft, Tag } from "lucide-react";
 import Link from "next/link";
 import { CommentSection, CommentData } from "@/components/comments/comment-section";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TaskActivityFeed, ActivityLogData } from "./task-activity-feed";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +44,26 @@ type MemberData = {
   } | null;
 };
 
+type MetadataField = {
+  id: string;
+  field_name: string;
+  possible_values: string[];
+  default_value: string;
+};
+
+type MetadataValue = {
+  id: string;
+  task_id: string;
+  field_id: string;
+  value: string;
+};
+
+type ProjectTag = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 export function TaskDetailClient({
   task,
   projectId,
@@ -46,6 +71,12 @@ export function TaskDetailClient({
   comments,
   currentUserId,
   ownerId,
+  metadataFields = [],
+  metadataValues = [],
+  projectTags = [],
+  taskTagIds = [],
+  isMember = false,
+  activityLogs = [],
 }: {
   task: TaskData;
   projectId: string;
@@ -53,6 +84,12 @@ export function TaskDetailClient({
   comments: CommentData[];
   currentUserId: string;
   ownerId: string;
+  metadataFields?: MetadataField[];
+  metadataValues?: MetadataValue[];
+  projectTags?: ProjectTag[];
+  taskTagIds?: string[];
+  isMember?: boolean;
+  activityLogs?: ActivityLogData[];
 }) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -65,6 +102,19 @@ export function TaskDetailClient({
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assignee_id || "");
   const [dueDate, setDueDate] = useState(task.due_date || "");
+
+  // Metadata state
+  const [metaState, setMetaState] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const field of metadataFields) {
+      const val = metadataValues.find((v) => v.field_id === field.id);
+      initial[field.id] = val?.value || field.default_value;
+    }
+    return initial;
+  });
+
+  // Tags state
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(taskTagIds);
 
   // Completion Dialog State
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -96,7 +146,6 @@ export function TaskDetailClient({
   };
 
   const isOwner = currentUserId === ownerId;
-  const isMember = members.some((m) => m.user_id === currentUserId);
   const canEditState = isOwner || isMember;
 
   const handleStatusChange = (newStatus: string) => {
@@ -243,12 +292,12 @@ export function TaskDetailClient({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         {/* LEFT COLUMN: TASK INFO */}
-        <div className="md:col-span-2 space-y-8 bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+        <div className="md:col-span-2 space-y-8 bg-white p-6 md:p-8 rounded-xl border border-zinc-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
           
           {/* Header Row: Title & Priority Badge */}
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">
+              <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider block">
                 Task Title
               </Label>
               <div className="flex items-center gap-2">
@@ -289,29 +338,120 @@ export function TaskDetailClient({
             )}
           </div>
 
-        {/* Description */}
+        {/* Description — Rich Text */}
         <div>
-          <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 block border-b border-slate-100 pb-2">
+          <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-3 block border-b border-zinc-100 pb-2">
             Description
           </Label>
-          {isOwner ? (
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={(e) => {
-                if (e.target.value !== (task.description || "")) {
-                  handleUpdate("description", e.target.value);
-                }
-              }}
-              placeholder="Add a more detailed description..."
-              className="min-h-[120px] resize-y border-transparent hover:border-slate-200 focus:border-slate-300 shadow-none -ml-3 transition-colors bg-transparent text-slate-700"
+          {canEditState ? (
+            <RichTextEditor
+              content={description}
+              onChange={(html) => setDescription(html)}
+              editable={true}
             />
           ) : (
-            <p className="text-sm text-slate-700 min-h-[60px] whitespace-pre-wrap leading-relaxed">
-              {description || "No description provided."}
-            </p>
+            <div
+              className="prose prose-sm prose-slate max-w-none min-h-[60px]"
+              dangerouslySetInnerHTML={{ __html: description || "<p>No description provided.</p>" }}
+            />
+          )}
+          {canEditState && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                if (description !== (task.description || "")) {
+                  handleUpdate("description", description);
+                }
+              }}
+            >
+              Save Description
+            </Button>
           )}
         </div>
+
+        {/* Metadata Fields */}
+        {metadataFields.length > 0 && (
+          <div className="pt-6 border-t border-zinc-100">
+            <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-3 block">
+              Custom Fields
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {metadataFields.map((field) => (
+                <div key={field.id} className="space-y-1">
+                  <Label className="text-[13px] text-zinc-600 font-medium">{field.field_name}</Label>
+                  {canEditState ? (
+                    <select
+                      value={metaState[field.id] || field.default_value}
+                      onChange={async (e) => {
+                        const newVal = e.target.value;
+                        setMetaState((prev) => ({ ...prev, [field.id]: newVal }));
+                        const result = await setTaskMetadata(task.id, projectId, field.id, newVal);
+                        if (result.error) toast.error(result.error);
+                        else toast.success(`${field.field_name} updated`);
+                      }}
+                      className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 text-zinc-700"
+                    >
+                      <option value="Not Applicable">Not Applicable</option>
+                      {field.possible_values.map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex h-9 items-center px-3 rounded-md border border-zinc-100 bg-zinc-50 text-[13px] font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+                      {metaState[field.id] || field.default_value}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tags */}
+        {projectTags.length > 0 && (
+          <div className="pt-6 border-t border-slate-100">
+            <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 block">
+              <Tag className="h-3.5 w-3.5 inline mr-1" />
+              Tags
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {projectTags.map((tag) => {
+                const isSelected = selectedTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    disabled={!canEditState}
+                    onClick={async () => {
+                      const newIds = isSelected
+                        ? selectedTagIds.filter((id) => id !== tag.id)
+                        : [...selectedTagIds, tag.id];
+                      setSelectedTagIds(newIds);
+                      const result = await setTaskTags(task.id, projectId, newIds);
+                      if (result.error) toast.error(result.error);
+                    }}
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                      isSelected
+                        ? "text-white border-transparent"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                    } ${!canEditState ? "cursor-default" : "cursor-pointer"}`}
+                    style={isSelected ? { backgroundColor: tag.color } : undefined}
+                  >
+                    {!isSelected && (
+                      <span
+                        className="w-2 h-2 rounded-full mr-1.5"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                    )}
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Details Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-slate-100">
@@ -396,14 +536,33 @@ export function TaskDetailClient({
         </div>
       </div>
 
-      {/* RIGHT COLUMN: COMMENTS */}
+      {/* RIGHT COLUMN: COMMENTS & ACTIVITY */}
       <div className="md:col-span-1 flex flex-col h-full min-h-[400px]">
-        <CommentSection 
-          comments={comments} 
-          currentUserId={currentUserId} 
-          taskId={task.id} 
-          projectId={projectId} 
-        />
+        <Tabs defaultValue="comments" className="flex flex-col h-full w-full">
+          <TabsList className="w-full grid w-full grid-cols-2 bg-zinc-100 border border-zinc-200/50 rounded-lg p-1 h-9">
+            <TabsTrigger value="comments" className="rounded-md text-[13px] font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm text-zinc-500 h-7">
+              Comments
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="rounded-md text-[13px] font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm text-zinc-500 h-7">
+              Activity History
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="comments" className="flex-1 mt-4">
+            <CommentSection 
+              comments={comments} 
+              currentUserId={currentUserId} 
+              taskId={task.id} 
+              projectId={projectId} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="activity" className="flex-1 mt-4">
+            <div className="bg-white rounded-xl border border-zinc-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] p-6 overflow-y-auto max-h-[600px]">
+              <TaskActivityFeed logs={activityLogs} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
     </div>

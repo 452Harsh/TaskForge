@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "./activity";
 
 export async function createTask(projectId: string, formData: FormData) {
   const supabase = await createClient();
@@ -27,7 +29,7 @@ export async function createTask(projectId: string, formData: FormData) {
   }
 
   // Insert task
-  const { error } = await supabase.from("tasks").insert({
+  const { data: taskRow, error } = await supabase.from("tasks").insert({
     title,
     description: description || null,
     status: status || "todo",
@@ -35,11 +37,11 @@ export async function createTask(projectId: string, formData: FormData) {
     project_id: projectId,
     assignee_id: assignee_id || null,
     due_date: due_date || null,
-  });
+  }).select("id").single();
 
-  if (error) {
+  if (error || !taskRow) {
     console.error("Error creating task:", error);
-    return { error: error.message };
+    return { error: error?.message || "Failed to create task" };
   }
 
   // If a specific user was assigned, automatically add them as a project member
@@ -59,14 +61,20 @@ export async function createTask(projectId: string, formData: FormData) {
     }
   }
 
+  await logActivity(taskRow.id, projectId, user.id, "created", null, title);
+
+  if (assignee_id) {
+    await logActivity(taskRow.id, projectId, user.id, "assigned", null, assignee_id);
+  }
+
   revalidatePath(`/projects/${projectId}`);
-  return { success: true };
+  return { success: true, taskId: taskRow.id };
 }
 
 export async function updateTask(taskId: string, projectId: string, data: Record<string, unknown>) {
   const supabase = await createClient();
 
-  // Validate user
+  // Validate user is authenticated
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -75,7 +83,10 @@ export async function updateTask(taskId: string, projectId: string, data: Record
     return { error: "Not authenticated" };
   }
 
-  const { error } = await supabase
+  // Use admin client to bypass RLS for the actual update
+  const adminSupabase = createAdminClient();
+
+  const { error } = await adminSupabase
     .from("tasks")
     .update(data)
     .eq("id", taskId)
@@ -88,12 +99,34 @@ export async function updateTask(taskId: string, projectId: string, data: Record
 
   // When reassigning to a new user, ensure they become a project member
   if (data.assignee_id && typeof data.assignee_id === "string") {
-    await supabase
+    await adminSupabase
       .from("project_members")
       .upsert(
         { project_id: projectId, user_id: data.assignee_id, role: "member" },
         { onConflict: "project_id,user_id", ignoreDuplicates: true }
       );
+  }
+
+  // Log activity for each updated field
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined) continue;
+
+    let actionName = "edited";
+    if (key === "status") actionName = "status_changed";
+    else if (key === "assignee_id") actionName = "assigned";
+    else if (key === "priority") actionName = "priority_changed";
+    else if (key === "title") actionName = "title_edited";
+    else if (key === "description") actionName = "description_edited";
+    else if (key === "due_date") actionName = "due_date_changed";
+
+    await logActivity(
+      taskId,
+      projectId,
+      user.id,
+      actionName,
+      null,
+      value !== null ? String(value) : "Unassigned"
+    );
   }
 
   revalidatePath(`/projects/${projectId}`);

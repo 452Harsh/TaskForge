@@ -120,7 +120,7 @@ export function CommentSection({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                        className="absolute right-0 top-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-600 hover:bg-transparent"
                         onClick={() => handleDelete(comment.id)}
                         disabled={deletingId === comment.id}
                         title="Delete comment"
@@ -131,7 +131,7 @@ export function CommentSection({
                     )}
                   </div>
                   
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-[14px] text-zinc-700 whitespace-pre-wrap leading-relaxed">
                     {comment.content}
                   </p>
                 </div>
@@ -142,9 +142,9 @@ export function CommentSection({
       </div>
 
       {/* Add Comment Form */}
-      <form onSubmit={handleSubmit} className="mt-auto pt-6 border-t border-slate-100 flex gap-3 shrink-0">
-        <Avatar className="h-8 w-8 border border-slate-200 shrink-0 mt-1 bg-slate-100">
-          <AvatarFallback className="text-slate-600">
+      <form onSubmit={handleSubmit} className="mt-auto pt-6 border-t border-zinc-100 flex gap-3 shrink-0">
+        <Avatar className="h-8 w-8 shrink-0 mt-1 bg-zinc-100">
+          <AvatarFallback className="text-zinc-500">
             <User2 className="h-4 w-4" />
           </AvatarFallback>
         </Avatar>
@@ -152,8 +152,8 @@ export function CommentSection({
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Write a comment..."
-            className="min-h-[80px] resize-none border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white transition-colors"
+            placeholder="Leave a comment..."
+            className="min-h-[80px] text-[14px] resize-none border-zinc-200 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 rounded-lg bg-zinc-50/50 focus:bg-white transition-colors"
             disabled={isSubmitting}
           />
           <div className="flex justify-end">
@@ -161,7 +161,7 @@ export function CommentSection({
               type="submit" 
               size="sm" 
               disabled={isSubmitting || !content.trim()}
-              className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white rounded-md px-4 h-8 text-[13px] font-medium"
             >
               {isSubmitting ? "Posting..." : "Post Comment"}
             </Button>

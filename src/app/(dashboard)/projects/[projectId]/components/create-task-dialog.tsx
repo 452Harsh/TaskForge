@@ -18,6 +18,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createTask } from "@/lib/actions/tasks";
+import { bulkSetTaskMetadata } from "@/lib/actions/metadata";
+import { setTaskTags } from "@/lib/actions/tags";
 
 type Member = {
   user_id: string;
@@ -26,16 +28,35 @@ type Member = {
   } | null;
 };
 
+type MetadataField = {
+  id: string;
+  field_name: string;
+  possible_values: string[];
+  default_value: string;
+};
+
+type Tag = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 export function CreateTaskDialog({
   projectId,
   members,
+  metadataFields = [],
+  projectTags = [],
 }: {
   projectId: string;
   members: Member[];
+  metadataFields?: MetadataField[];
+  projectTags?: Tag[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [metadataValues, setMetadataValues] = useState<Record<string, string>>({});
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,15 +65,41 @@ export function CreateTaskDialog({
     const formData = new FormData(e.currentTarget);
     const result = await createTask(projectId, formData);
 
-    setLoading(false);
-
     if (result.error) {
       toast.error(result.error);
-    } else {
-      toast.success("Task created successfully");
-      setOpen(false);
-      router.refresh(); // Forces Next.js to aggressively reload the UI column data
+      setLoading(false);
+      return;
     }
+
+    // Save metadata values if task was created and we have the taskId
+    if (result.taskId) {
+      // Set metadata values
+      const metaEntries = Object.entries(metadataValues)
+        .filter(([, v]) => v && v !== "Not Applicable")
+        .map(([fieldId, value]) => ({ field_id: fieldId, value }));
+      
+      if (metaEntries.length > 0) {
+        await bulkSetTaskMetadata(result.taskId, projectId, metaEntries);
+      }
+
+      // Set tags
+      if (selectedTags.length > 0) {
+        await setTaskTags(result.taskId, projectId, selectedTags);
+      }
+    }
+
+    setLoading(false);
+    toast.success("Task created successfully");
+    setOpen(false);
+    setMetadataValues({});
+    setSelectedTags([]);
+    router.refresh();
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+    );
   };
 
   return (
@@ -63,7 +110,7 @@ export function CreateTaskDialog({
           Create Task
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create new task</DialogTitle>
           <DialogDescription>
@@ -92,7 +139,7 @@ export function CreateTaskDialog({
                 <select
                   id="status"
                   name="status"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   defaultValue="todo"
                 >
                   <option value="todo">Todo</option>
@@ -106,7 +153,7 @@ export function CreateTaskDialog({
                 <select
                   id="priority"
                   name="priority"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   defaultValue="medium"
                 >
                   <option value="low">Low</option>
@@ -122,7 +169,7 @@ export function CreateTaskDialog({
                 <select
                   id="assignee"
                   name="assignee"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <option value="">Unassigned</option>
                   {members.map((m) => (
@@ -139,10 +186,80 @@ export function CreateTaskDialog({
                   type="date"
                   id="due_date"
                   name="due_date"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
             </div>
+
+            {/* ══ Custom Metadata Fields ══ */}
+            {metadataFields.length > 0 && (
+              <div className="space-y-3 border-t border-slate-200 pt-4">
+                <Label className="text-xs text-slate-500 uppercase tracking-wider">
+                  Custom Fields
+                </Label>
+                {metadataFields.map((field) => (
+                  <div key={field.id} className="grid gap-1.5">
+                    <Label className="text-sm">{field.field_name}</Label>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      value={metadataValues[field.id] || field.default_value}
+                      onChange={(e) =>
+                        setMetadataValues((prev) => ({
+                          ...prev,
+                          [field.id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="Not Applicable">Not Applicable</option>
+                      {field.possible_values.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ══ Tags ══ */}
+            {projectTags.length > 0 && (
+              <div className="space-y-2 border-t border-slate-200 pt-4">
+                <Label className="text-xs text-slate-500 uppercase tracking-wider">
+                  Tags
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {projectTags.map((tag) => {
+                    const isSelected = selectedTags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                          isSelected
+                            ? "text-white border-transparent"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}
+                        style={
+                          isSelected
+                            ? { backgroundColor: tag.color }
+                            : undefined
+                        }
+                      >
+                        {!isSelected && (
+                          <span
+                            className="w-2 h-2 rounded-full mr-1.5"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                        )}
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

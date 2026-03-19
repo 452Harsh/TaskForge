@@ -40,8 +40,7 @@ export default async function TaskPage({
 
   const ownerId = project?.owner_id ?? "";
 
-  // Fetch ALL profiles so any user can be assigned — they will be auto-added
-  // to project_members by the Server Action if they aren't already a member.
+  // Fetch ALL profiles so any user can be assigned
   const { data: profilesData } = await supabase
     .from("profiles")
     .select("id, full_name")
@@ -50,7 +49,7 @@ export default async function TaskPage({
 
   const members = (profilesData || []).map((p) => ({
     user_id: p.id,
-    profiles: { full_name: p.full_name as string | null},
+    profiles: { full_name: p.full_name as string | null },
   }));
 
   // Fetch comments
@@ -62,14 +61,60 @@ export default async function TaskPage({
 
   const comments = (commentsData || []) as unknown as CommentData[];
 
+  // Fetch metadata fields for this project
+  const { data: metadataFields } = await supabase
+    .from("project_metadata_fields")
+    .select("*")
+    .eq("project_id", params.projectId)
+    .order("created_at", { ascending: true });
+
+  // Fetch metadata values for this task
+  const { data: metadataValues } = await supabase
+    .from("task_metadata_values")
+    .select("*")
+    .eq("task_id", params.taskId);
+
+  // Fetch tags for this project
+  const { data: projectTags } = await supabase
+    .from("project_tags")
+    .select("*")
+    .eq("project_id", params.projectId)
+    .order("created_at", { ascending: true });
+
+  // Fetch tags assigned to this task
+  const { data: taskTags } = await supabase
+    .from("task_tags")
+    .select("tag_id")
+    .eq("task_id", params.taskId);
+
+  // Check if current user is a project member
+  const { data: membershipData } = await supabase
+    .from("project_members")
+    .select("user_id")
+    .eq("project_id", params.projectId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isMember = !!membershipData || user.id === ownerId;
+
+  // Fetch Activity Log
+  const { getTaskActivity } = await import("@/lib/actions/activity");
+  const { data: activityLogs } = await getTaskActivity(params.taskId);
+
   return (
-    <TaskDetailClient 
-      task={task} 
-      projectId={params.projectId} 
+    <TaskDetailClient
+      task={task}
+      projectId={params.projectId}
       members={members}
       comments={comments}
       currentUserId={user.id}
       ownerId={ownerId}
+      metadataFields={metadataFields || []}
+      metadataValues={metadataValues || []}
+      projectTags={projectTags || []}
+      taskTagIds={(taskTags || []).map((t) => t.tag_id)}
+      isMember={isMember}
+      activityLogs={activityLogs || []}
     />
   );
 }

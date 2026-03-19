@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "./activity";
 
 export async function addComment(
   taskId: string,
@@ -23,7 +25,10 @@ export async function addComment(
     return { error: "Comment cannot be empty" };
   }
 
-  const { error } = await supabase.from("comments").insert({
+  // Use admin client to bypass RLS
+  const adminSupabase = createAdminClient();
+
+  const { error } = await adminSupabase.from("comments").insert({
     task_id: taskId,
     user_id: user.id,
     content: content.trim(),
@@ -33,6 +38,8 @@ export async function addComment(
     console.error("Error adding comment:", error);
     return { error: error.message };
   }
+
+  await logActivity(taskId, projectId, user.id, "comment_added", null, content.trim());
 
   revalidatePath(`/projects/${projectId}/tasks/${taskId}`);
   return { success: true };
