@@ -4,7 +4,6 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Activity, MessageSquare, CheckCircle, Tag, Edit, UserPlus, Clock } from "lucide-react";
 import { getProjectActivity } from "@/lib/actions/activity";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,

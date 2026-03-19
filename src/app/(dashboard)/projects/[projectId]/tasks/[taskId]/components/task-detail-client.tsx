@@ -411,12 +411,12 @@ export function TaskDetailClient({
 
         {/* Tags */}
         {projectTags.length > 0 && (
-          <div className="pt-6 border-t border-slate-100">
-            <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 block">
-              <Tag className="h-3.5 w-3.5 inline mr-1" />
+          <div className="pt-6 border-t border-zinc-100">
+            <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-4 block flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5" />
               Tags
             </Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {projectTags.map((tag) => {
                 const isSelected = selectedTagIds.includes(tag.id);
                 return (
@@ -432,16 +432,16 @@ export function TaskDetailClient({
                       const result = await setTaskTags(task.id, projectId, newIds);
                       if (result.error) toast.error(result.error);
                     }}
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-medium transition-all border ${
                       isSelected
                         ? "text-white border-transparent"
-                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300 shadow-sm"
                     } ${!canEditState ? "cursor-default" : "cursor-pointer"}`}
                     style={isSelected ? { backgroundColor: tag.color } : undefined}
                   >
                     {!isSelected && (
                       <span
-                        className="w-2 h-2 rounded-full mr-1.5"
+                        className="w-1.5 h-1.5 rounded-full mr-1.5"
                         style={{ backgroundColor: tag.color }}
                       />
                     )}
@@ -454,11 +454,11 @@ export function TaskDetailClient({
         )}
 
         {/* Details Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-zinc-100">
           
           {/* Status */}
           <div className="space-y-2">
-            <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+            <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
               Status
             </Label>
             <div className="flex">
@@ -483,7 +483,7 @@ export function TaskDetailClient({
 
           {/* Assignee */}
           <div className="space-y-2">
-            <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+            <Label className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
               Assignee
             </Label>
             {canEditState ? (
@@ -493,7 +493,7 @@ export function TaskDetailClient({
                   setAssigneeId(e.target.value);
                   handleUpdate("assignee_id", e.target.value || null);
                 }}
-                className="flex h-9 w-full rounded-lg border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 text-slate-700"
+                className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 text-zinc-700"
               >
                 <option value="">Unassigned</option>
                 {members.map((m) => (
@@ -503,7 +503,7 @@ export function TaskDetailClient({
                 ))}
               </select>
             ) : (
-              <div className="flex h-9 items-center px-3 rounded-lg border border-slate-100 bg-slate-50 text-sm font-medium text-slate-700">
+              <div className="flex h-9 items-center px-3 rounded-md border border-zinc-100 bg-zinc-50 text-[13px] font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
                 {members.find((m) => m.user_id === assigneeId)?.profiles?.full_name || "Unassigned"}
               </div>
             )}
@@ -523,11 +523,11 @@ export function TaskDetailClient({
                     setDueDate(e.target.value);
                     handleUpdate("due_date", e.target.value || null);
                   }}
-                  className="flex h-9 w-full rounded-lg border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 text-slate-700"
+                  className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 text-zinc-700"
                 />
               </div>
             ) : (
-              <div className={`flex h-9 items-center px-3 rounded-lg border text-sm font-medium ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50 border-slate-100 text-slate-700'}`}>
+              <div className={`flex h-9 items-center px-3 rounded-md border text-[13px] font-medium shadow-[0_1px_2px_rgba(0,0,0,0.01)] ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-zinc-50 border-zinc-100 text-zinc-700'}`}>
                 {dueDate ? new Date(dueDate).toLocaleDateString("en-US") : "No due date"}
               </div>
             )}
