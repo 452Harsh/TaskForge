@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TaskFlow 🌊
 
-## Getting Started
+TaskFlow is a modern, Jira-like project management application built for speed and aesthetic excellence. It provides teams with a seamless environment to track projects, manage Kanban boards, rapidly create tasks, and discuss them inline using deep persistent threads.
 
-First, run the development server:
+![Screenshot Placeholder](https://via.placeholder.com/1200x800?text=TaskFlow+Dashboard+Screenshot)
 
+## Tech Stack
+- **Framework:** Next.js 14 (App Router)
+- **Styling:** Tailwind CSS + custom HSL Tokens
+- **Components:** shadcn/ui (Tailwind v3 Native) + Radix UI Primitives
+- **Database:** Supabase PostgreSQL
+- **Authentication:** Supabase Auth (@supabase/ssr)
+- **Icons:** Lucide React
+- **Notifications:** Sonner
+
+## Running Locally
+
+1. **Clone and Install:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd taskflow
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configure Environment Variables:**
+Create a `.env.local` file at the root of the project:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Run the Development Server:**
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase Setup 
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create a new [Supabase Project](https://database.new)
+2. Obtain your API keys from the *Project Settings -> API* dashboard.
+3. Access the *SQL Editor* and copy-paste the query from `supabase/migrations/00001_initial_schema.sql` completely into the runner. Click **Run**.
+4. This schema automatically enables Row-Level Security (RLS) policies and registers the Postgres authentication trigger necessary to sync authenticated users to the internal application `profiles` table.
+5. In *Authentication -> Providers*, ensure Email/Password signin is enabled.
