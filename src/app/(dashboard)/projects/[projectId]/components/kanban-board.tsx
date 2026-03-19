@@ -225,13 +225,13 @@ export function KanbanBoard({
         return (
           <div
             key={column.status}
-            className="flex flex-col rounded-xl bg-slate-50 p-4 border border-slate-200 transition-colors hover:bg-slate-100/50"
+            className="flex flex-col rounded-xl bg-[#f7f7f8] p-3 border border-zinc-200/60 transition-colors hover:bg-[#f1f1f2]"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, column.status)}
           >
-            <div className="flex items-center justify-between mb-4 px-1">
-              <h3 className="font-semibold text-slate-900">{column.title}</h3>
-              <span className="inline-flex items-center justify-center bg-slate-200 text-slate-700 text-xs font-medium px-2 py-0.5 rounded-full min-w-6">
+            <div className="flex items-center justify-between mb-3 px-1.5">
+              <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight">{column.title}</h3>
+              <span className="inline-flex items-center justify-center bg-zinc-200/50 text-zinc-500 text-[11px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] h-5">
                 {columnTasks.length}
               </span>
             </div>
@@ -258,7 +258,7 @@ export function KanbanBoard({
                       }}
                       className="cursor-pointer block"
                     >
-                        <Card className={`group shadow-sm transition-all duration-200 ease-in-out border-slate-200 border-l-[3px] ${getPriorityBorderColor(task.priority)} bg-white hover:shadow-md hover:-translate-y-0.5 ${canEditState ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+                        <Card className={`group shadow-[0_1px_3px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-200 ease-in-out border-zinc-200/80 border-l-[3px] ${getPriorityBorderColor(task.priority)} bg-white hover:border-zinc-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] ${canEditState ? 'cursor-grab active:cursor-grabbing' : ''} rounded-lg overflow-hidden`}>
                           <CardHeader className="p-4 pb-2 relative">
                             {canEditState && (
                               <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -266,7 +266,7 @@ export function KanbanBoard({
                               </div>
                             )}
                             <div className="flex justify-between items-start gap-2 pr-4">
-                              <CardTitle className="text-sm font-medium leading-snug text-slate-900">
+                              <CardTitle className="text-[13px] font-semibold leading-tight text-zinc-800 group-hover:text-zinc-950 transition-colors">
                                 {task.title}
                               </CardTitle>
                               <span
@@ -278,7 +278,7 @@ export function KanbanBoard({
                           </CardHeader>
                           <CardContent className="p-4 pt-2">
                             {task.description && (
-                              <p className="text-xs text-slate-500 line-clamp-2 mb-2">
+                              <p className="text-[11.5px] text-zinc-500 line-clamp-2 mb-3 leading-relaxed">
                                 {task.description.replace(/<[^>]*>/g, '')}
                               </p>
                             )}
@@ -291,7 +291,7 @@ export function KanbanBoard({
                                   return (
                                     <span
                                       key={tag.id}
-                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium text-white"
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold text-white/90 shadow-sm"
                                       style={{ backgroundColor: tag.color }}
                                     >
                                       {tag.name}
@@ -308,25 +308,25 @@ export function KanbanBoard({
                                   const field = metadataFields.find((f) => f.id === mv.field_id);
                                   if (!field) return null;
                                   return (
-                                    <div key={field.id} className="flex items-center gap-1 text-[10px] text-slate-500">
-                                      <span className="font-semibold text-slate-700">{field.field_name}:</span>
-                                      <span>{mv.value}</span>
+                                    <div key={field.id} className="flex items-center gap-1 text-[10px] text-zinc-400">
+                                      <span className="font-medium text-zinc-500">{field.field_name}:</span>
+                                      <span className="text-zinc-600">{mv.value}</span>
                                     </div>
                                   );
                                 })}
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
-                              <div className={`flex items-center gap-1.5 text-xs font-medium ${task.due_date && new Date(task.due_date) < new Date()
-                                ? "text-rose-600" : "text-slate-500"}`}>
-                                <Calendar className="h-3.5 w-3.5" />
-                                {task.due_date ? new Date(task.due_date).toLocaleDateString("en-US") : "No date"}
+                            <div className="flex items-center justify-between mt-auto pt-3 border-t border-zinc-100/80">
+                              <div className={`flex items-center gap-1.5 text-[10.5px] font-medium ${task.due_date && new Date(task.due_date) < new Date()
+                                ? "text-rose-500" : "text-zinc-400"}`}>
+                                <Calendar className="h-3 w-3" />
+                                {task.due_date ? new Date(task.due_date).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }) : "No date"}
                               </div>
-                              <Avatar className="h-6 w-6 border-slate-200 bg-slate-100">
+                              <Avatar className="h-5 w-5 border-zinc-100 bg-zinc-50">
                                 <AvatarImage src={task.assignee?.avatar_url || undefined} />
-                                <AvatarFallback className="text-[10px] text-slate-600">
-                                  {task.assignee?.full_name?.charAt(0) || <User2 className="h-3 w-3" />}
+                                <AvatarFallback className="text-[9px] text-zinc-500 font-bold">
+                                  {task.assignee?.full_name?.charAt(0) || <User2 className="h-2.5 w-2.5" />}
                                 </AvatarFallback>
                               </Avatar>
                             </div>

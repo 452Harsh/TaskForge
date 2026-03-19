@@ -43,8 +43,8 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Your Projects</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Your Projects</h1>
+          <p className="text-zinc-500 text-[13px] mt-1 font-medium">
             Manage your teams and current projects.
           </p>
         </div>
@@ -52,14 +52,14 @@ export default async function DashboardPage() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white/50 text-center shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
           <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center p-8">
-            <div className="h-20 w-20 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-4">
-              <LayoutDashboard className="h-10 w-10" />
+            <div className="h-16 w-16 bg-zinc-100 text-zinc-400 rounded-2xl flex items-center justify-center mb-6 border border-zinc-200 shadow-inner">
+              <LayoutDashboard className="h-8 w-8" />
             </div>
-            <h3 className="mt-2 text-xl font-semibold text-slate-900">No projects found</h3>
-            <p className="mb-6 mt-2 text-sm text-slate-500">
-              You haven&apos;t created or joined any projects yet. Get started by creating your first project to organize tasks and collaborate with your team.
+            <h3 className="text-lg font-bold text-zinc-900 tracking-tight">No projects found</h3>
+            <p className="mb-8 mt-2 text-[13px] text-zinc-500 leading-relaxed font-medium">
+              You haven&apos;t created or joined any projects yet. Start by creating your first project to organize tasks and collaborate.
             </p>
             <CreateProjectDialog />
           </div>
@@ -68,25 +68,25 @@ export default async function DashboardPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <Link key={project.id} href={`/projects/${project.id}`} className="block group">
-              <Card className="h-full bg-white border-slate-200 shadow-sm transition-all duration-200 ease-in-out group-hover:-translate-y-1 group-hover:shadow-md group-hover:border-slate-300 rounded-xl overflow-hidden">
+              <Card className="h-full bg-white border-zinc-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-300 ease-out group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:border-zinc-300 rounded-xl overflow-hidden">
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg font-semibold text-slate-900">
+                    <CardTitle className="text-[17px] font-bold text-zinc-900 group-hover:text-black transition-colors tracking-tight">
                       {project.name}
                     </CardTitle>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                       Active
                     </span>
                   </div>
-                  <CardDescription className="line-clamp-2 min-h-[40px] text-sm text-slate-500 mt-2">
+                  <CardDescription className="line-clamp-2 min-h-[40px] text-[13px] text-zinc-500 mt-2 font-medium leading-relaxed">
                     {project.description || "No description provided."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-slate-500">
-                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                      <Users className="h-4 w-4 text-slate-400" />
-                      <span className="font-medium">
+                  <div className="flex items-center gap-4 text-[12px] text-zinc-500">
+                    <div className="flex items-center gap-1.5 bg-zinc-50 px-2 py-1 rounded-md border border-zinc-100 font-semibold group-hover:bg-zinc-100 transition-colors">
+                      <Users className="h-3.5 w-3.5 text-zinc-400" />
+                      <span>
                         {project.project_members?.length || 1} Member
                         {(project.project_members?.length || 1) !== 1 ? "s" : ""}
                       </span>

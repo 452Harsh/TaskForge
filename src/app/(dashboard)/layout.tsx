@@ -63,10 +63,10 @@ export default async function DashboardLayout({
   ) as { id: string; name: string; created_at: string }[];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-zinc-50/50">
       {/* Sidebar */}
-      <aside className="w-64 flex-col bg-slate-900 text-slate-50 flex shrink-0">
-        <div className="h-14 flex items-center px-6 border-b border-slate-800">
+      <aside className="w-64 flex-col bg-zinc-950 text-zinc-50 flex shrink-0">
+        <div className="h-14 flex items-center px-6 border-b border-zinc-900/50">
           <Link href="/" className="flex items-center gap-2 font-semibold text-white">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-500 text-white">
               <CheckSquare className="h-5 w-5" />
@@ -77,19 +77,19 @@ export default async function DashboardLayout({
 
         <SidebarNav myProjects={myProjects} sharedProjects={sharedProjects} />
 
-        <div className="mt-auto border-t border-slate-800 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <Avatar className="h-9 w-9 border border-slate-700 bg-slate-800">
+        <div className="mt-auto border-t border-zinc-900/50 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <Avatar className="h-8 w-8 border border-zinc-800 bg-zinc-900">
               <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-slate-800 text-slate-300">
+              <AvatarFallback className="bg-zinc-900 text-zinc-500 text-[10px] font-bold">
                 {profile?.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
-            <div className="grid flex-1 text-sm">
-              <span className="truncate font-medium text-slate-200">
+            <div className="grid flex-1 text-[13px] leading-tight">
+              <span className="truncate font-semibold text-zinc-200">
                 {profile?.full_name || "User"}
               </span>
-              <span className="truncate text-xs text-slate-500">
+              <span className="truncate text-[11px] text-zinc-500 font-medium">
                 {user.email}
               </span>
             </div>
